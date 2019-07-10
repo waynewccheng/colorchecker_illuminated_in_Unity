@@ -4,12 +4,20 @@
 
 %% reorganized for Andrea's ACM submission
 % 7-9-2019
+% 7-10-2019 changed to IPO model
+%
 % file/folder structure:
-%  .\dE_self_reference_white    -- this file
-%  .\input                      -- input images
-%  .\output                     -- results
+%  .\process\dE_self_reference_white    -- this file
+%  .\input                              -- input images
+%  .\output                             -- results
+
+
 
 function dE_self_reference_white
+
+%% machine-dependent variables
+pathnameinput = '..\\input\\';                      % input path
+pathnameoutput = '..\\output\\';                    % output path
 
 image_dim = 1024;
 
@@ -23,9 +31,9 @@ for group_no = 1:4                  % for each group from 1 to 4
         % get the output from Unity
         
         if group_no == 2                        % new setting changed naming convention for Group 2
-            fn_out = sprintf('input\\Group%dv2_ (%d).png',group_no,patch_no);
+            fn_out = sprintf('%s\\Group%dv2_ (%d).png',pathnameinput,group_no,patch_no);
         else
-            fn_out = sprintf('input\\Group%d_ (%d).png',group_no,patch_no);
+            fn_out = sprintf('%s\\Group%d_ (%d).png',pathnameinput,group_no,patch_no);
         end
         
         im_out = imread(fn_out);
@@ -122,17 +130,17 @@ for group_no = 1:4                  % for each group from 1 to 4
         show_plot(lab(:,:,3)-lab0(:,:,3),'{\Delta}b*')
         
         % capture the figure
-        saveas(gcf,sprintf('output\\G%dP%d.png',group_no,patch_no))
+        saveas(gcf,sprintf('%s\\G%dP%d.png',pathnameoutput,group_no,patch_no))
         
     end
     
 end
 
 %% save the dE data from the first half
-save('output\\dEresult','ddE','ddE_lin')
+save(sprintf('%s\\dEresult',pathnameoutput),'ddE','ddE_lin')
 
 % so new analysis does not need to recompute dE and can start here
-load('output\\dEresult','ddE_lin')
+load(sprintf('%s\\dEresult',pathnameoutput),'ddE_lin')
 
 %% visualization with a boxplot
 clf
@@ -146,7 +154,7 @@ for i = 1:4
 end
 
 % capture the figure
-saveas(gcf,'output\\Finding Self Boxplot.png')
+saveas(gcf,sprintf('%s\\Finding Self Boxplot.png',pathnameoutput))
 
 return
 
