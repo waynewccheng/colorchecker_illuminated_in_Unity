@@ -24,7 +24,7 @@ image_dim = 1024;
 ddE = zeros(4,24,image_dim,image_dim);          % for dE, 2D
 ddE_lin = zeros(4,24,image_dim*image_dim);      % for dE, 1D
 
-for group_no = 1:4                  % for each group from 1 to 4
+for group_no = 5:5                  % for each group from 1 to 4
     
     for patch_no = 1:24             % for each patch in ColorChecker from 1 to 24
         
