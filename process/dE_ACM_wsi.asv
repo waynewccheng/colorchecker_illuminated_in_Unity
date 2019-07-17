@@ -1,0 +1,151 @@
+%% for Andrea's ACM submission
+
+%% reorganized for Andrea's ACM submission
+% 7-9-2019
+% 7-10-2019 changed to IPO model
+%
+% file/folder structure:
+%  .\process\dE_self_reference_white    -- this file
+%  .\input                              -- input images
+%  .\output                             -- results
+
+%% modified to use a single reference white for 7 configurations
+% 7-11-2019
+
+%% modified to calculate a single pixel for 7 configurations
+% 7-16-2019
+
+
+function dE_ACM_wsi
+
+%% machine-dependent variables
+pathnameinput = '..\\input_wsi\\';                      % input path
+pathnameoutput = '..\\output_wsi\\';                    % output path
+
+%% location
+xy = [513 87;
+    687 204;
+    381 234;
+    436 471;
+    571 538;
+    196 582;
+    582 722];
+
+%% deliverable
+data = zeros(7,size(xy,1));
+
+for group_no = 1
+    
+    % ignore the meaning of filenames, which is confusing
+    % see my comments
+    im_target = get_rgb(0,'truth');                % the Unity input of the WSI
+    im_measure = get_rgb(group_no,'truth');        % the Unity output of the WSI
+    im_measure_wp = get_rgb(group_no,'0');         % the Unity output of the white patch [255,255,255]; copied from the previous experiment
+    
+    if 1
+        % check location
+        subplot(1,2,1)
+        image(im_target)
+        subplot(1,2,2)
+        image(im_measure)
+    end
+    
+    for i = 1:size(xy,1)
+        
+        % matrix indices
+        row = xy(i,2);
+        col = xy(i,1);
+        
+        % grab the pixel
+        rgb_target = squeeze(im_target(row,col,:))';
+        rgb_measure = squeeze(im_measure(row,col,:))';
+        rgb_measure_wp = squeeze(im_measure_wp(row,col,:))';
+        
+        % calculate the target
+        % use sRGB model to convert RGB to CIELAB
+        lab_target = rgb2lab(rgb_target,'ColorSpace','srgb','WhitePoint','d50');
+        
+        % calculate the measured
+        xyz_measure = rgb2xyz(rgb_measure,'ColorSpace','srgb','WhitePoint','d50');
+        xyz_measure_wp = rgb2xyz(rgb_measure_wp,'ColorSpace','srgb','WhitePoint','d50');
+        lab_measure = XYZ2lab(xyz_measure,xyz_measure_wp);
+        
+        % calculate dE
+        dE = lab2dE76(lab_target,lab_measure);
+        
+        data(group_no,1:) = dE;
+        
+    end
+    
+end
+
+return
+
+%
+% save the data
+%
+save(sprintf('%s\\results',pathnameoutput),'lab_truth','lab_measure','dE') % in Matlab
+
+xlswrite(sprintf('%s\\dE.xls',pathnameoutput),dE')           % in Excel
+
+%
+% read the pixels of one patch
+%
+    function rgb = get_rgb (group_no, patch_label)
+        fn = sprintf('%s\\Group%d_ (%s).png',pathnameinput,group_no,patch_label);  % construct filename
+        rgb = imread(fn);
+    end
+
+end
+
+%
+% deltaE
+%
+function dE = lab2dE76 (lab1,lab2)
+
+dE = sum((lab1 - lab2).^ 2,2).^0.5;
+
+end
+
+
+%%
+%
+% CIEXYZ to CIELAB
+%
+function ret = XYZ2lab (XYZ, XYZ_white)
+% XYZ is k-by-3
+% XYZ_white is k-by-3
+
+k = size(XYZ,1);
+XYZn = XYZ_white;
+XYZ_over_XYZn = XYZ./XYZn;
+
+lstar = 116 * helpf(XYZ_over_XYZn(:,2)) - 16;
+astar = 500 * (helpf(XYZ_over_XYZn(:,1)) - helpf(XYZ_over_XYZn(:,2)));
+bstar = 200 * (helpf(XYZ_over_XYZn(:,2)) - helpf(XYZ_over_XYZn(:,3)));
+
+ret=[lstar astar bstar];
+
+%
+% out-of-range check
+%
+%     if lstar > 100
+%         ['exceeding in xyz2lab']
+%         [x y z xn yn zn lstar astar bstar]
+%         lstar = 100;
+%     end
+
+return
+
+    function ys = helpf (t)
+        % conditional mask
+        t_greater = (t > power(6/29,3));
+        
+        % conditional assignment
+        t(t_greater) = t(t_greater) .^ (1/3);
+        t(~t_greater) = t(~t_greater) * (((29/6)^2)/3) + 4/29;
+        
+        ys = t;
+    end
+
+end
